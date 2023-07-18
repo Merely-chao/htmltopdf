@@ -42,7 +42,7 @@ pub async fn pdf(
 ) -> Result<Vec<u8>, (StatusCode, String)> {
     let url = match params.get("url") {
         Some(v) => v,
-        None => return Err((StatusCode::INTERNAL_SERVER_ERROR, "url是必须的".to_string())),
+        None => return Err((StatusCode::UNPROCESSABLE_ENTITY, "url是必须的".to_string())),
     };
     let tab = match browser.new_tab() {
         Ok(v) => v,
