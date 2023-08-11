@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, ffi::OsStr, net::SocketAddr, time::Duration};
+use std::{collections::HashMap, error::Error, ffi::OsStr, net::SocketAddr, time::Duration, sync::Arc};
 
 use axum::{
     extract::{Query, State},
@@ -7,15 +7,16 @@ use axum::{
     Router,
 };
 use headless_chrome::{
-    protocol::cdp::Target::CreateTarget, types::PrintToPdfOptions, Browser, LaunchOptions,
+    protocol::cdp::{Target::CreateTarget, Fetch::{RequestPattern, RequestStage, events::RequestPausedEvent}}, types::PrintToPdfOptions, Browser, LaunchOptions, browser::{transport::{Transport, SessionId}, tab::RequestPausedDecision},
 };
 use serde::Deserialize;
+use tokio::task::yield_now;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut launch_options = LaunchOptions::default();
     launch_options.headless = true;
-
+    
     launch_options.args.push(OsStr::new("--no-startup-window"));
     launch_options
         .args
@@ -44,6 +45,9 @@ pub async fn pdf(
         Some(v) => v,
         None => return Err((StatusCode::UNPROCESSABLE_ENTITY, "url是必须的".to_string())),
     };
+
+    yield_now().await;
+   
     let tab = match browser.new_tab() {
         Ok(v) => v,
         Err(e) => {
@@ -53,6 +57,29 @@ pub async fn pdf(
             ))
         }
     };
+
+    let patterns = vec![
+        RequestPattern {
+            url_pattern: None,
+            resource_Type: None,
+            request_stage: Some(RequestStage::Response),
+        },
+        RequestPattern {
+            url_pattern: None,
+            resource_Type: None,
+            request_stage: Some(RequestStage::Request),
+        },
+    ];
+    let _ = tab.enable_fetch(Some(&patterns), None);
+
+    let _ = tab.enable_request_interception(Arc::new(
+        move |_transport: Arc<Transport>, _session_id: SessionId, _intercepted: RequestPausedEvent| {
+         println!("进来了");
+           
+                RequestPausedDecision::Continue(None)
+           
+        },
+    ));
 
     let _ = match tab.navigate_to(&url) {
         Ok(v) => v,
@@ -86,8 +113,9 @@ pub async fn pdf(
             ))
         }
     };
-
+ 
     let _ = tab.close_with_unload();
+
     Ok(data)
 }
 
@@ -104,6 +132,8 @@ pub async fn img(
     Query(params): Query<ImgParams>,
     State(browser): State<Browser>,
 ) -> Result<Vec<u8>, (StatusCode, String)> {
+
+   
     let target_options = CreateTarget {
         url: "about:blank".to_string(),
         width: params.width,
@@ -113,7 +143,7 @@ pub async fn img(
         new_window: None,
         background: params.background,
     };
-
+    yield_now().await;
     let tab = match browser.new_tab_with_options(target_options) {
         Ok(v) => v,
         Err(e) => {
