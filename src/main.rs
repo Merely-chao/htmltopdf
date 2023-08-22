@@ -46,7 +46,6 @@ pub async fn pdf(
         None => return Err((StatusCode::UNPROCESSABLE_ENTITY, "url是必须的".to_string())),
     };
 
-    yield_now().await;
    
     let tab = match browser.new_tab() {
         Ok(v) => v,
@@ -74,7 +73,7 @@ pub async fn pdf(
 
     let _ = tab.enable_request_interception(Arc::new(
         move |_transport: Arc<Transport>, _session_id: SessionId, _intercepted: RequestPausedEvent| {
-         println!("进来了");
+        // println!("进来了");
            
                 RequestPausedDecision::Continue(None)
            
@@ -90,7 +89,7 @@ pub async fn pdf(
             ))
         }
     };
-
+    yield_now().await;
     let tab = match tab.wait_until_navigated() {
         Ok(v) => v,
         Err(e) => {
@@ -115,6 +114,7 @@ pub async fn pdf(
     };
  
     let _ = tab.close_with_unload();
+
 
     Ok(data)
 }
@@ -143,7 +143,7 @@ pub async fn img(
         new_window: None,
         background: params.background,
     };
-    yield_now().await;
+  
     let tab = match browser.new_tab_with_options(target_options) {
         Ok(v) => v,
         Err(e) => {
@@ -163,7 +163,7 @@ pub async fn img(
             ))
         }
     };
-
+    yield_now().await;
     let tab = match tab.wait_until_navigated() {
         Ok(v) => v,
         Err(e) => {
