@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.32.0", features = ["full"] }
 axum = { version = "0.6.20" }
-serde = { version =  "1.0.185", features = ["derive"] }
+serde = { version =  "1.0.18.6", features = ["derive"] }
 headless_chrome = {git = "https://github.com/atroche/rust-headless-chrome", features = ["fetch"]}
 
 
