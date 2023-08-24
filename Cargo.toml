@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.32.0", features = ["full"] }
 axum = { version = "0.6.20" }
-serde = { version =  "1.0.18.6", features = ["derive"] }
-headless_chrome = {git = "https://github.com/atroche/rust-headless-chrome", features = ["fetch"]}
+serde = { version =  "1.0.186", features = ["derive"] }
+headless_chrome = {git = "https://github.com/atroche/rust-headless-chrome", default-features = false}
+env_logger = "0.10"
+log = "0.4"
 
 
 [profile.release]
@@ -20,3 +22,6 @@ codegen-units = 1
 panic = "abort"
 [build]
 rustflags = ["-C", "target-cpu=native"]
+
+[target.'cfg(all(target_env = "musl", target_pointer_width = "64"))'.dependencies.jemallocator]
+version = "0.3"

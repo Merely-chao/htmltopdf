@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, ffi::OsStr, net::SocketAddr, time::Duration, sync::Arc};
+use std::{collections::HashMap, error::Error, ffi::OsStr, net::SocketAddr, time::Duration, sync::Arc, path::PathBuf};
 
 use axum::{
     extract::{Query, State},
@@ -7,21 +7,29 @@ use axum::{
     Router,
 };
 use headless_chrome::{
-    protocol::cdp::{Target::CreateTarget, Fetch::{RequestPattern, RequestStage, events::RequestPausedEvent}}, types::PrintToPdfOptions, Browser, LaunchOptions, browser::{transport::{Transport, SessionId}, tab::RequestPausedDecision},
+    protocol::cdp::{Target::CreateTarget, Fetch::{RequestPattern, RequestStage, events::RequestPausedEvent}}, types::PrintToPdfOptions, Browser, LaunchOptions, browser::{transport::{Transport, SessionId}, tab::RequestPausedDecision}, LaunchOptionsBuilder
 };
+use log::info;
 use serde::Deserialize;
 use tokio::task::yield_now;
 
+#[cfg(all(target_env = "musl", target_pointer_width = "64"))]
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut launch_options = LaunchOptions::default();
-    launch_options.headless = true;
-    
-    launch_options.args.push(OsStr::new("--no-startup-window"));
-    launch_options
-        .args
-        .push(OsStr::new("--no-pdf-header-footer"));
-    launch_options.idle_browser_timeout = Duration::MAX; //永不断开
+    env_logger::init();
+
+   info!("启动");
+    let  launch_options = LaunchOptionsBuilder::default()
+    .sandbox(false)
+    .headless(true)
+    .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
+    .port(Some(8001))
+    .idle_browser_timeout(Duration::MAX).build()?;
+
+    info!("打开浏览器");
     let browser: Browser = Browser::new(launch_options)?;
 
     let app = Router::new()
@@ -30,6 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_state(browser);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    info!("开始监听");
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await?;
