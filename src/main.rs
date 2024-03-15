@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 use headless_chrome::{
-    protocol::cdp::{Target::CreateTarget, Fetch::{RequestPattern, RequestStage, events::RequestPausedEvent}}, types::PrintToPdfOptions, Browser, LaunchOptions, browser::{transport::{Transport, SessionId}, tab::RequestPausedDecision}, LaunchOptionsBuilder
+    protocol::cdp::{Target::CreateTarget, Fetch::{RequestPattern, RequestStage, events::RequestPausedEvent}}, types::PrintToPdfOptions, Browser,  browser::{transport::{Transport, SessionId}, tab::RequestPausedDecision}, LaunchOptionsBuilder
 };
 use log::info;
 use serde::Deserialize;
@@ -23,9 +23,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
    info!("启动");
     let  launch_options = LaunchOptionsBuilder::default()
+   // .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
     .sandbox(false)
     .headless(true)
-    .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
     .port(Some(8001))
     .idle_browser_timeout(Duration::MAX).build()?;
 
