@@ -30,7 +30,7 @@ RUN cargo build --target x86_64-unknown-linux-musl --release
 ####################################################################################################
 ## Final image
 ####################################################################################################
-FROM alpine:3.18
+FROM alpine:latest
 
 
 # Import from builder.
@@ -40,18 +40,19 @@ COPY --from=builder /etc/group /etc/group
 # Installs latest Chromium package.
 RUN apk upgrade --no-cache --available \
     && apk add --no-cache \
-      chromium-swiftshader \
-      ttf-freefont \
-      font-noto-emoji \
-    && apk add --no-cache \
-      --repository=https://dl-cdn.alpinelinux.org/alpine/edge/testing \
-      font-wqy-zenhei
+      chromium-swiftshader 
+    #   \
+    #   ttf-freefont \
+    #   font-noto-emoji \
+    # && apk add --no-cache \
+    #   --repository=https://dl-cdn.alpinelinux.org/alpine/edge/testing \
+    #   font-wqy-zenhei
 
 COPY local.conf /etc/fonts/local.conf
-
+COPY fonts/* /usr/share/fonts/
 # Add Chrome as a user
-RUN mkdir -p /usr/src/app \
-    && chown -R htmltopdf:htmltopdf /usr/src/app
+# RUN mkdir -p /usr/src/app \
+#     && chown -R htmltopdf:htmltopdf /usr/src/app
 # Run Chrome as non-privileged
 USER htmltopdf:htmltopdf
 WORKDIR /usr/src/app
