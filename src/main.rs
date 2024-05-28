@@ -33,14 +33,14 @@ static G_COUNT: u8 = 120;
 async fn main() -> Result<(), Box<dyn Error>> {
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
-    info!("启动");
-    let launch_options = LaunchOptionsBuilder::default()
-        // .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
-        .sandbox(false)
-        .headless(true)
-        .port(Some(8001))
-        .idle_browser_timeout(Duration::MAX)
-        .build()?;
+
+   info!("启动");
+    let  launch_options = LaunchOptionsBuilder::default()
+    .sandbox(false)
+    .headless(true)
+    // .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
+    .port(Some(8001))
+    .idle_browser_timeout(Duration::MAX).build()?;
 
     info!("打开浏览器");
     let browser: Browser = Browser::new(launch_options)?;
