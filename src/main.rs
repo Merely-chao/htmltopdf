@@ -17,8 +17,7 @@ use log::info;
 use ntex::{
     rt::spawn,
     web::{
-        self, get,
-        types::{Query, State},
+        self, get,types::{Query, State}
     },
 };
 use serde::Deserialize;
@@ -31,16 +30,16 @@ static G_COUNT: u8 = 120;
 
 #[ntex::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    std::env::set_var("RUST_LOG", "info");
+    // std::env::set_var("RUST_LOG", "trace");
     env_logger::init();
 
-   info!("启动");
-    let  launch_options = LaunchOptionsBuilder::default()
-    .sandbox(false)
-    .headless(true)
-    // .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
-    .port(Some(8001))
-    .idle_browser_timeout(Duration::MAX).build()?;
+    info!("启动");
+    let launch_options = LaunchOptionsBuilder::default()
+        .sandbox(false)
+        // .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
+        .port(Some(8001))
+        .idle_browser_timeout(Duration::MAX)
+        .build()?;
 
     info!("打开浏览器");
     let browser: Browser = Browser::new(launch_options)?;
@@ -52,20 +51,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     spawn(async move {
         loop {
-
             //监听无法印报告请求，清理可能出现的tabs
             loop {
                 ntex::time::sleep(Duration::from_secs(30)).await;
                 match ref_state.lock() {
                     Ok(mut state) => {
-
-                        info!("当前state{}",state);
+                        info!("当前state{}", state);
                         if *state == 0 {
-                            *state = 10;
+                            *state = G_COUNT;
                             break;
                         }
                         *state -= 1;
-                    },
+                    }
                     Err(e) => {
                         info!("获取状态值失败:{:?}", e);
                         continue;
@@ -100,9 +97,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .bind(("0.0.0.0", 3000))?
     .run()
     .await?;
-
     Ok(())
 }
+
+
+// #[derive(Deserialize)]
+// struct Info {
+//     Idx: String,
+// }
+
+
 
 pub async fn pdf(
     params: Query<HashMap<String, String>>,
@@ -119,6 +123,7 @@ pub async fn pdf(
             .into())
         }
     };
+
     *state = G_COUNT;
 
     drop(state);
@@ -182,9 +187,8 @@ pub async fn pdf(
     };
     info!("等待界面加载结束");
 
-    let mut p = PrintToPdfOptions::default();
+    let mut p: PrintToPdfOptions = PrintToPdfOptions::default();
     p.prefer_css_page_size = Some(true);
-    ntex::time::sleep(Duration::from_nanos(1)).await;
     let data = match tab.print_to_pdf(Some(p)) {
         Ok(v) => v,
         Err(e) => {
@@ -195,9 +199,13 @@ pub async fn pdf(
     };
 
     let _ = tab.close(true);
-
+    info!("传输数据：{}", data.len());
     Ok(web::HttpResponse::Ok()
-        .content_type("application/pdf")
+        .header(
+            "Content-Disposition",
+            format!("attachment;filename={}.pdf", url),
+        )
+        .content_type("application/octet-stream")
         .body(data))
 }
 
@@ -284,6 +292,33 @@ pub async fn img(
     };
 
     let _ = tab.close_with_unload();
-
-    Ok(web::HttpResponse::Ok().body(data))
+    // response.addHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(filename, "UTF-8"));
+    Ok(web::HttpResponse::Ok()
+        .header(
+            "Content-Disposition",
+            format!("attachment;filename={}.png", params.url),
+        )
+        .content_type("application/octet-stream")
+        .body(data))
 }
+
+// #[web::post("/index")]
+// pub async fn index(_data: web::types::Json<HashMap<String,String>>) -> impl web::Responder {
+// info!("进来");
+//     info!("{:?}",_data);
+//     "Hello world!"
+// }
+
+// #[ntex::main]
+// async fn main() -> std::io::Result<()> {
+//     std::env::set_var("RUST_LOG", "trace");
+
+//     env_logger::init();
+//     web::HttpServer::new(|| {
+//         web::App::new()
+//             .service(index)
+//     })
+//     .bind(("0.0.0.0", 3000))?
+//     .run()
+//     .await
+// }
