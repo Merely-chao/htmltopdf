@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use std::{
     collections::HashMap,
     error::Error,
@@ -6,18 +8,14 @@ use std::{
 };
 
 use headless_chrome::{
-    protocol::cdp::{
-        Fetch::{RequestPattern, RequestStage},
-        Target::CreateTarget,
-    },
-    types::PrintToPdfOptions,
-    Browser, LaunchOptionsBuilder,
+    protocol::cdp::Target::CreateTarget, types::PrintToPdfOptions, Browser, LaunchOptionsBuilder,
 };
 use log::info;
 use ntex::{
     rt::spawn,
     web::{
-        self, get,types::{Query, State}
+        self, get,
+        types::{Query, State},
     },
 };
 use serde::Deserialize;
@@ -30,11 +28,12 @@ static G_COUNT: u8 = 120;
 
 #[ntex::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // std::env::set_var("RUST_LOG", "trace");
+    std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 
     info!("启动");
     let launch_options = LaunchOptionsBuilder::default()
+        .headless(true)
         .sandbox(false)
         // .args(vec![OsStr::new("--no-startup-window"),OsStr::new("--no-pdf-header-footer")])
         .port(Some(8001))
@@ -100,13 +99,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 // #[derive(Deserialize)]
 // struct Info {
 //     Idx: String,
 // }
-
-
 
 pub async fn pdf(
     params: Query<HashMap<String, String>>,
@@ -133,7 +129,7 @@ pub async fn pdf(
         Some(v) => v,
         None => return Err(web::error::ErrorInternalServerError("url是必须的:").into()),
     };
-    ntex::time::sleep(Duration::from_nanos(1)).await;
+    // ntex::time::sleep(Duration::from_nanos(1)).await;
 
     let tab = match browser.new_tab() {
         Ok(v) => v,
@@ -146,22 +142,24 @@ pub async fn pdf(
         }
     };
 
-    let patterns: Vec<RequestPattern> = vec![
-        RequestPattern {
-            url_pattern: None,
-            resource_Type: None,
-            request_stage: Some(RequestStage::Response),
-        },
-        RequestPattern {
-            url_pattern: None,
-            resource_Type: None,
-            request_stage: Some(RequestStage::Request),
-        },
-    ];
+    tab.set_default_timeout(Duration::from_secs(60));
 
-    let _ = tab.enable_fetch(Some(&patterns), None);
+    // let patterns: Vec<RequestPattern> = vec![
+    //     RequestPattern {
+    //         url_pattern: None,
+    //         resource_Type: None,
+    //         request_stage: Some(RequestStage::Response),
+    //     },
+    //     RequestPattern {
+    //         url_pattern: None,
+    //         resource_Type: None,
+    //         request_stage: Some(RequestStage::Request),
+    //     },
+    // ];
 
-    ntex::time::sleep(Duration::from_nanos(1)).await;
+    // let _ = tab.enable_fetch(Some(&patterns), None);
+
+    //ntex::time::sleep(Duration::from_nanos(1)).await;
     let _ = match tab.navigate_to(&url) {
         Ok(v) => v,
         Err(e) => {
@@ -173,7 +171,7 @@ pub async fn pdf(
         }
     };
 
-    ntex::time::sleep(Duration::from_nanos(1)).await;
+    //  ntex::time::sleep(Duration::from_nanos(1)).await;
 
     let tab = match tab.wait_until_navigated() {
         Ok(v) => v,
@@ -246,7 +244,6 @@ pub async fn img(
         new_window: None,
         background: params.background,
     };
-    ntex::time::sleep(Duration::from_nanos(1)).await;
     let tab = match browser.new_tab_with_options(target_options) {
         Ok(v) => v,
         Err(e) => {
@@ -257,7 +254,6 @@ pub async fn img(
             .into())
         }
     };
-    ntex::time::sleep(Duration::from_nanos(1)).await;
     let _ = match tab.navigate_to(&params.url) {
         Ok(v) => v,
         Err(e) => {
@@ -268,7 +264,7 @@ pub async fn img(
             .into())
         }
     };
-    ntex::time::sleep(Duration::from_nanos(1)).await;
+
     let tab = match tab.wait_until_navigated() {
         Ok(v) => v,
         Err(e) => {
@@ -279,7 +275,7 @@ pub async fn img(
             .into())
         }
     };
-    ntex::time::sleep(Duration::from_nanos(1)).await;
+
     let data = match tab.capture_screenshot(params.format.clone(), None, None, true) {
         Ok(v) => v,
         Err(e) => {
